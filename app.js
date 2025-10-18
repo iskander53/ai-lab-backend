@@ -6,6 +6,8 @@ const app = express();
 const PORT = 3000;
 
 app.use(cors()); // <--- allow all origins
+app.use(express.json()); // чтобы парсить JSON из тела запроса
+
 
 // Supabase credentials
 const SUPABASE_URL = "https://xkcvngknoyonqgmhlexs.supabase.co";
@@ -62,6 +64,51 @@ app.get("/category/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
+
+app.post("/checkout", async (req, res) => {
+  try {
+    const { user_id, order_id, items } = req.body;
+
+    if (!user_id || !order_id || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "user_id, order_id и items обязательны" });
+    }
+
+    // Формируем массив объектов для вставки
+    const rows = items.map(item => ({
+      user_id,
+      item_id: item.item_id,
+      qty: item.qty,
+      total_price: item.total_price,
+      order_id
+    }));
+
+    // Отправляем запрос на Supabase
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_API_KEY,
+        Authorization: `Bearer ${SUPABASE_API_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation" // чтобы Supabase вернул вставленные строки
+      },
+      body: JSON.stringify(rows)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Supabase error: ${response.statusText}`);
+    }
+
+    const savedOrders = await response.json();
+    res.json(savedOrders);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 
 app.listen(PORT, "0.0.0.0", () => {
