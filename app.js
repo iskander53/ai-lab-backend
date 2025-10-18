@@ -36,6 +36,34 @@ app.get("/categories", async (req, res) => {
   }
 });
 
+
+// Endpoint for products by category_id
+app.get("/category/:id", async (req, res) => {
+  try {
+    const categoryId = req.params.id; // Получаем category_id из URL
+
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/products?category_id=eq.${categoryId}`, {
+      method: "GET",
+      headers: {
+        apikey: SUPABASE_API_KEY,
+        Authorization: `Bearer ${SUPABASE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Supabase error: ${response.statusText}`);
+    }
+
+    const products = await response.json();
+    res.json(products);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running at http://0.0.0.0:${PORT}`);
 });
