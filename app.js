@@ -6,6 +6,7 @@ const app = express();
 const PORT = 3000;
 
 app.use(cors());
+app.use(express.json()); // <--- должно быть ДО роутов
 
 // Supabase credentials
 const SUPABASE_URL = "https://xkcvngknoyonqgmhlexs.supabase.co";
