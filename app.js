@@ -65,6 +65,50 @@ app.get("/category/:id", async (req, res) => {
   }
 });
 
+
+app.post("/checkout", async (req, res) => {
+  const { user_id, order_id, items } = req.body;
+
+  if (!user_id || !order_id || !items || !Array.isArray(items)) {
+    return res
+      .status(400)
+      .json({ error: "user_id, order_id и items (array) обязательны" });
+  }
+
+  // Готовим массив строк для вставки
+  const orderRows = items.map((item) => ({
+    user_id,
+    order_id,
+    item_id: item.item_id,
+    qty: item.qty,
+    total_price: item.total_price,
+  }));
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_API_KEY,
+        Authorization: `Bearer ${SUPABASE_API_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation", // чтобы вернулся массив вставленных строк
+      },
+      body: JSON.stringify(orderRows),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Supabase error: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    res.json({ success: true, order: data });
+  } catch (err) {
+    console.error("Checkout error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Server ---
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running at http://0.0.0.0:${PORT}`);
